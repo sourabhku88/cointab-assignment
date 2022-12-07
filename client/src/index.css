@@ -1,0 +1,20 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.login ,.signup,.home{
+  height: 91vh;
+}
+
+.login form ,.signup form{
+  width: 35vw !important;
+  background-color: rgb(145 137 137 / 17%);
+  transition: all 0.3s;
+}
+
+.login form:hover {
+  transform: scale(1.001);
+  box-shadow: rgb(145 137 137 / 17%) 0 0 12px 12px;
+}
