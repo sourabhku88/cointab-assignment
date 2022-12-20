@@ -22,7 +22,7 @@ const createUser = async (req, res) => {
         const checkEmail = await userModel.findOne({ email });
         const checkPhone = await userModel.findOne({ phone });
 
-        if (checkEmail) return res.status(400).send({ message: 'Please provide unique phone' });
+        if (checkEmail) return res.status(400).send({ message: 'Please provide unique email' });
         if (checkPhone) return res.status(400).send({ message: 'Please provide unique phone' });
 
         req.body.password = await bcrypt.hash(password, 10);
@@ -51,19 +51,17 @@ const login = async (req, res) => {
     const lastTryDay = moment(user.blockTime);
     const today = moment(moment().format());
     const hours = today.diff(lastTryDay, 'hours');
-
-    console.log(hours,  user.attemptTime ,'56' );
-    // console.log(user.attemptTime);
-    //    =>   time null ho ya 24 hours or attempt -5 to login kr  
-    if ((!(hours == NaN) && user.attemptTime < 5  ) || hours > 10) {
+    console.log(hours , user.email ,  user.blockTime , user.attemptTime);
+    // when user first time regester that this user has blockTime -> null , attempet -> 1 hours -> nan
+    // when user blocked  hours greterthen of 10 hours attempt -> 5 blocktime -> last block time 
+    if ((user.blockTime === null && user.attemptTime === 1 ) || (hours > 10 && user.attemptTime > 4) || (hours < 10 || !(hours === NaN) && user.attemptTime < 5)) {
 
         if (hours > 10 && user.attemptTime > 4) {
-            // console.log(61 ,user.attemptTime , user.blockTime)
+           
             let checkPassword = await bcrypt.compare(password, user.password);
-            await userModel.findOneAndUpdate({ email }, { attemptTime: 1 }, { new: true });
+            await userModel.findOneAndUpdate({ email }, { attemptTime: 1 , blockTime: null }, { new: true });
 
             if (checkPassword) {
-
 
                 let token = jwt.sign({ id: user._id }, 'sourabhkumarcointabassignment');
 
@@ -72,14 +70,14 @@ const login = async (req, res) => {
             } else {
                 let data = await userModel.findOneAndUpdate({ email }, { $inc: { attemptTime: +1 } }, { new: true });
 
-                return res.status(401).send({ message: `invalid password... you have only ${6 - data.attemptTime} left. after 5 wrong time attempt . you will block from 24 hours` })
+                return res.status(401).send({ message: `invalid password.\n after ${6 - data.attemptTime} wrong time attempt . \n you will block from 24 hours` })
             }
         } else {
             let checkPassword = await bcrypt.compare(password, user.password);
 
             if (checkPassword) {
 
-                await userModel.findOneAndUpdate({ email }, { attemptTime: 1 }, { new: true });
+                await userModel.findOneAndUpdate({ email }, { attemptTime: 1, blockTime: null  }, { new: true });
 
                 let token = jwt.sign({ id: user._id }, 'sourabhkumarcointabassignment');
 
@@ -88,7 +86,7 @@ const login = async (req, res) => {
             } else {
 
                 let data = await userModel.findOneAndUpdate({ email }, { $inc: { attemptTime: +1 } }, { new: true });
-// console.log(data.attemptTime , data.blockTime , 91);
+
                 if (data.attemptTime > 6) {
                     await userModel.findOneAndUpdate({ email }, { blockTime: moment().format() }, { new: true });
 
